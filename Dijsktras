@@ -1,0 +1,89 @@
+import heapq  # Biblioteca que permite usar a fila de prioridade (heap) para melhorar a eficiência do Dijkstra.
+
+# Função para ler o arquivo de entrada e construir o grafo.
+def ler_arquivo(entrada):
+    grafo = {}  # Dicionário que vai armazenar o grafo.
+    # Abre o arquivo de entrada em modo leitura.
+    with open(entrada, 'r') as f:
+        # Processa cada linha do arquivo.
+        for linha in f:
+            # Divide a linha em três partes: origem, destino e peso (separados por ';').
+            origem, destino, peso = linha.strip().split(';')
+            peso = int(peso)  # Converte o peso de string para inteiro.
+
+            # Adiciona a aresta no grafo.
+            if origem not in grafo:
+                grafo[origem] = []  # Se a origem não existe, inicializa uma lista para armazenar seus vizinhos.
+            if destino not in grafo:
+                grafo[destino] = []  # Se o destino não existe, faz o mesmo.
+            
+            # Adiciona o destino como vizinho da origem e vice-versa (grafo não direcionado).
+            grafo[origem].append((destino, peso))
+            grafo[destino].append((origem, peso))
+
+    return grafo  # Retorna o grafo.
+
+# Função para executar o algoritmo de Dijkstra.
+def dijkstra(grafo, inicio, fim):
+    # Inicializa as distâncias como infinitas para todos os vértices, exceto o de início (distância 0).
+    distancias = {vertice: float('inf') for vertice in grafo}
+    distancias[inicio] = 0  # A distância até o vértice inicial é zero.
+    caminho = {}  # Dicionário que vai armazenar o caminho mais curto até cada vértice.
+
+    # Fila de prioridade (min-heap), começando pelo vértice inicial com distância 0.
+    fila_prioridade = [(0, inicio)]
+
+    # Loop principal do algoritmo.
+    while fila_prioridade:
+        # Remove o vértice com a menor distância (o mais próximo não processado).
+        distancia_atual, vertice_atual = heapq.heappop(fila_prioridade)
+
+        # Se já chegou ao vértice final, podemos parar.
+        if vertice_atual == fim:
+            break
+        
+        # Explora todos os vizinhos do vértice atual.
+        for vizinho, peso in grafo[vertice_atual]:
+            # Calcula a nova distância para o vizinho.
+            distancia = distancia_atual + peso
+
+            # Se essa distância for menor que a registrada anteriormente, atualiza.
+            if distancia < distancias[vizinho]:
+                distancias[vizinho] = distancia  # Atualiza a distância.
+                caminho[vizinho] = vertice_atual  # Armazena o vértice anterior no caminho.
+                # Adiciona o vizinho na fila de prioridade para ser processado.
+                heapq.heappush(fila_prioridade, (distancia, vizinho))    
+    
+    # Reconstrução do caminho mais curto a partir do destino até o início.
+    percurso = []
+    atual = fim
+    # Enquanto o vértice atual não for o vértice de início, percorre o caminho inverso.
+    while atual != inicio:
+        percurso.append(atual)  # Adiciona o vértice atual ao percurso.
+        atual = caminho[atual]  # Vai para o vértice anterior no caminho.
+    
+    percurso.append(inicio)  # Adiciona o vértice de início ao percurso.
+    percurso.reverse()  # Inverte o percurso para mostrar na ordem correta (do início ao fim).
+
+    return percurso, distancias[fim]  # Retorna o percurso e o custo total (distância final).
+
+# Função principal que faz a interação com o usuário.
+def main():
+    # Pede ao usuário o nome do arquivo de entrada (com a topologia da rede).
+    entrada = input('Digite o nome do arquivo de entrada:')
+    grafo = ler_arquivo(entrada)  # Chama a função para ler o arquivo e construir o grafo.
+
+    # Pede ao usuário os vértices de início e fim.
+    inicio = input('Digite o vértice de ínicio:')
+    fim = input('Digite o vértice que deseja chegar:')
+
+    # Executa o algoritmo de Dijkstra para encontrar o caminho mais curto e o custo total.
+    percurso, custo_total = dijkstra(grafo, inicio, fim)
+    
+    # Mostra o percurso e o custo total na tela.
+    print('Percurso:', '-->'.join(percurso))
+    print('Custo Total:', custo_total)
+
+# Executa a função principal se o script for executado diretamente.
+if __name__ == '_main_':
+        main()
