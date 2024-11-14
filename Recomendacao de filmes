@@ -1,0 +1,83 @@
+import re
+import pandas as pd
+import networkx as nx
+import matplotlib.pyplot
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+def prepara_arquivo(arquivo):
+    palavras_remover = ["the", "as", "and", "from", "with", 
+                        "by", "with", "for", "um", "uma", "or", "a"]
+    
+    linhas_processadas = []
+    for linha in arquivo:
+        linha = re.sub(r'[^\w\s;]', '', linha)
+        linha = ' '.join([palavra for palavra in linha.split() if palavra.lower() not in palavras_remover])
+        linhas_processadas.append(linha.strip())
+    
+    return linhas_processadas
+
+def monta_grafo(arquivo, pesos):
+    dados = pd.read_csv(arquivo)
+    
+    dados_filtrados = dados[['type', 'director', 'cast' , 'country', 'rating', 'listed_in', 'description']]
+
+    for coluna in ['type', 'director', 'cast' , 'country', 'rating', 'listed_in', 'description']:
+        dados_filtrados[coluna] = dados_filtrados[coluna].fillna('')
+
+    dados_filtrados['features'] = (
+        dados_filtrados['type'] * pesos['type'] + " "+
+        dados_filtrados['director'] * pesos['director'] + " " +
+        dados_filtrados['cast'] * pesos['cast'] + " " +
+        dados_filtrados['country'] * pesos['country'] + " " +
+        dados_filtrados['rating'] * pesos['rating'] + " "+
+        dados_filtrados['listed_in'] * pesos['listed_in'] + " "+
+        dados_filtrados['description'] * pesos['rating']
+
+    )
+
+    vetorizer = TfidfVectorizer()
+    vetor_semelhanca = vetorizer.fit_transform(dados_filtrados['features'])
+
+    similaridade = cosine_similarity(vetor_semelhanca)
+
+    grafo = nx.Graph()
+
+    for idx, row in dados.iterrows():
+        grafo.add_node(idx, title=row['title'])
+
+    lim_min_similaridade = 0.2
+    for i in range(similaridade.shape[0]):
+        for j in range(i + 1, similaridade.shape[1]):
+            if similaridade[i, j] > lim_min_similaridade:
+                grafo.add_edge(i, j, weight=similaridade[i, j])
+
+    return grafo
+
+pesos = {
+    'director': 1.5,
+    'cast': 1.2,
+    'country': 1.0,
+    'listed_in': 1.8
+}
+
+grafo = monta_grafo('disney_plus_titles.csv', pesos)
+
+def recomenda_filmes(grafo, filme_id, num_recomendacoes=5):
+    vizinhos = sorted(
+        grafo[filme_id].items(),
+        key=lambda x: x[1]['weight'],
+        reverse=True
+    )
+    
+    recomendacoes = [(grafo.nodes[v[0]]['title'], v[1]['weight']) for v in vizinhos[:num_recomendacoes]]
+    return recomendacoes
+
+
+filme_id = 0 
+recomendacoes = recomenda_filmes(grafo, filme_id)
+print(recomendacoes)
+
+
+
