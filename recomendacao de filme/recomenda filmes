@@ -1,39 +1,36 @@
 import re
 import pandas as pd
 import networkx as nx
-import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-def prepara_arquivo(arquivo):
+def prepara_arquivo(dados):
     palavras_remover = ["the", "as", "and", "from", "with", 
                         "by", "with", "for", "um", "uma", "or", "a"]
     
-    linhas_processadas = []
-    for linha in arquivo:
-        linha = re.sub(r'[^\w\s;]', '', linha)
-        linha = ' '.join([palavra for palavra in linha.split() if palavra.lower() not in palavras_remover])
-        linhas_processadas.append(linha.strip())
+    for coluna in dados.columns:
+        dados[coluna] = dados[coluna].astype(str).apply(lambda linha: re.sub(r'[^\w\s;]', '', linha))
+        dados[coluna] = dados[coluna].apply(lambda linha: ' '.join([palavra for palavra in linha.split() if palavra.lower() not in palavras_remover]))
     
-    return linhas_processadas
+    return dados
 
 def monta_grafo(arquivo, pesos):
     dados = pd.read_csv(arquivo)
-    
-    dados_filtrados = dados[['type', 'director', 'cast' , 'country', 'rating', 'listed_in', 'description']]
+    dados = prepara_arquivo(dados)
+    dados_filtrados = dados[['show_id', 'type', 'director', 'cast', 'country', 'rating', 'listed_in', 'description']]
 
-    for coluna in ['type', 'director', 'cast' , 'country', 'rating', 'listed_in', 'description']:
+    for coluna in ['show_id', 'type', 'director', 'cast', 'country', 'rating', 'listed_in', 'description']:
         dados_filtrados[coluna] = dados_filtrados[coluna].fillna('')
 
+    # Ajustar a construção da coluna 'features' para evitar problemas com strings vazias
     dados_filtrados['features'] = (
-        dados_filtrados['type'] * pesos['type'] + " "+
-        dados_filtrados['director'] * pesos['director'] + " " +
-        dados_filtrados['cast'] * pesos['cast'] + " " +
-        dados_filtrados['country'] * pesos['country'] + " " +
-        dados_filtrados['rating'] * pesos['rating'] + " "+
-        dados_filtrados['listed_in'] * pesos['listed_in'] + " "+
-        dados_filtrados['description'] * pesos['rating']
-
+        dados_filtrados['type'] * str(pesos['type']) + " " +
+        dados_filtrados['director'] * str(pesos['director']) + " " +
+        dados_filtrados['cast'] * str(pesos['cast']) + " " +
+        dados_filtrados['country'] * str(pesos['country']) + " " +
+        dados_filtrados['rating'] * str(pesos['rating']) + " " +
+        dados_filtrados['listed_in'] * str(pesos['listed_in']) + " " +
+        dados_filtrados['description'] * str(pesos['description'])
     )
 
     vetorizer = TfidfVectorizer()
@@ -44,49 +41,50 @@ def monta_grafo(arquivo, pesos):
     grafo = nx.Graph()
 
     for idx, row in dados.iterrows():
-        grafo.add_node(idx, title=row['title'])
+        grafo.add_node(row['show_id'], title=row['title'])
 
     lim_min_similaridade = 0.2
     for i in range(similaridade.shape[0]):
         for j in range(i + 1, similaridade.shape[1]):
             if similaridade[i, j] > lim_min_similaridade:
-                grafo.add_edge(i, j, weight=similaridade[i, j])
+                grafo.add_edge(dados.iloc[i]['show_id'], dados.iloc[j]['show_id'], weight=similaridade[i, j])
 
     return grafo
 
 def recomenda_filmes(grafo, filme, filhos):
-    vizinhos=sorted(
+    vizinhos = sorted(
         grafo[filme].items(),
         key=lambda x: x[1]['weight'],
         reverse=True
     )
     
-    recomendacoes=[(grafo.nodes[v[0]]['title'], v[1]['weight']) for v in vizinhos[:filhos]]
+    recomendacoes = [(grafo.nodes[v[0]]['title'], v[1]['weight']) for v in vizinhos[:filhos]]
     return recomendacoes
 
 def main():
-
-    pesos={
-    'type': 0.0,
-    'director': 0.0,
-    'cast': 0.0,
-    'country': 0.0,
-    'rating': 0.0,
-    'listed_in': 0.0,
-    'description':0.0
-    # atribuir pesos para semelhança
+    
+    pesos = {
+        'type': 0.1,
+        'director': 0.1,
+        'cast': 0.2,
+        'country': 0.1,
+        'rating': 0.2,
+        'listed_in': 0.2,
+        'description': 0.3
     }
+    arquivo = 'C:/Users/issak/OneDrive/Área de Trabalho/Issaka/UFGD/Engenharia da Computação/Trabalhos/Teoria Dos Grafos/Trabalho 2/disney_plus_titles.csv'
+    grafo = monta_grafo(arquivo, pesos)
 
-    grafo=monta_grafo('disney_plus_titles.csv', pesos)
-
-    filme_id= input("qual o id do filme base para recomendacao") 
-    filme_id ='s' + filme_id
+    filme_id = input("qual o id do filme base para recomendacao: ") 
     if filme_id not in grafo:
-        print("Valor invalido");
+        print("valor invalido")
     else:
-        filhos =int(input("qual a quantidade de filhos para o grafo?"))
-    recomendacoes=recomenda_filmes(grafo, filme_id, filhos)
-    print(recomendacoes)
+        filhos = int(input("qual a quantidade de filhos para o grafo? "))
+        recomendacoes = recomenda_filmes(grafo, filme_id, filhos)
+        if recomendacoes:
+            print("\nrecomendacao baseada no filme selecionado:")
+            for titulo, peso in recomendacoes:
+                print(f" - {titulo} (similaridade: {peso:.2f})")
 
 if __name__ == "__main__":
     main()
