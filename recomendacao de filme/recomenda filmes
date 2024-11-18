@@ -6,7 +6,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 def prepara_arquivo(dados):
     palavras_remover = ["the", "as", "and", "from", "with", 
-                        "by", "with", "for", "um", "uma", "or", "a"]
+                        "by", "for", "or", "a"]
     
     for coluna in dados.columns:
         dados[coluna] = dados[coluna].astype(str).apply(lambda linha: re.sub(r'[^\w\s;]', '', linha))
