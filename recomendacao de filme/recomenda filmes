@@ -5,7 +5,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 def prepara_arquivo(dados):
-    palavras_remover = ["the", "as", "and", "from", "with", 
+    palavras_remover = ["the", "as", "and", "from", "of", 
                         "by", "for", "or", "a"]
     
     for coluna in dados.columns:
