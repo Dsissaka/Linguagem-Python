@@ -5,8 +5,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 def prepara_arquivo(dados):
-    palavras_remover = ["the", "as", "and", "from", "of", 
-                        "by", "for", "or", "a"]
+    palavras_remover = ["the", "as", "and", "from", "of", "by", "for", "or", "a"]
     
     for coluna in dados.columns:
         dados[coluna] = dados[coluna].astype(str).apply(lambda linha: re.sub(r'[^\w\s;]', '', linha))
@@ -15,22 +14,21 @@ def prepara_arquivo(dados):
     return dados
 
 def monta_grafo(arquivo, pesos):
-    dados = pd.read_csv(arquivo)
-    dados = prepara_arquivo(dados)
-    dados_filtrados = dados[['show_id', 'type', 'director', 'cast', 'country', 'rating', 'listed_in', 'description']]
+    aux = pd.read_csv(arquivo)
+    aux = prepara_arquivo(aux)
+    dados_filtrados = aux[['show_id', 'type', 'director', 'cast', 'country', 'rating', 'listed_in', 'description']]
 
     for coluna in ['show_id', 'type', 'director', 'cast', 'country', 'rating', 'listed_in', 'description']:
         dados_filtrados[coluna] = dados_filtrados[coluna].fillna('')
 
-    # Ajustar a construção da coluna 'features' para evitar problemas com strings vazias
     dados_filtrados['features'] = (
-        dados_filtrados['type'] * str(pesos['type']) + " " +
-        dados_filtrados['director'] * str(pesos['director']) + " " +
-        dados_filtrados['cast'] * str(pesos['cast']) + " " +
-        dados_filtrados['country'] * str(pesos['country']) + " " +
-        dados_filtrados['rating'] * str(pesos['rating']) + " " +
-        dados_filtrados['listed_in'] * str(pesos['listed_in']) + " " +
-        dados_filtrados['description'] * str(pesos['description'])
+        dados_filtrados['type'] + " " * int(pesos['type']) +
+        dados_filtrados['director'] + " " * int(pesos['director']) +
+        dados_filtrados['cast'] + " " * int(pesos['cast']) +
+        dados_filtrados['country'] + " " * int(pesos['country']) +
+        dados_filtrados['rating'] + " " * int(pesos['rating']) +
+        dados_filtrados['listed_in'] + " " * int(pesos['listed_in']) +
+        dados_filtrados['description'] + " " * int(pesos['description'])
     )
 
     vetorizer = TfidfVectorizer()
@@ -40,14 +38,14 @@ def monta_grafo(arquivo, pesos):
 
     grafo = nx.Graph()
 
-    for idx, row in dados.iterrows():
+    for idx, row in aux.iterrows():
         grafo.add_node(row['show_id'], title=row['title'])
 
-    lim_min_similaridade = 0.2
+    lim_min_similaridade = 0.1
     for i in range(similaridade.shape[0]):
         for j in range(i + 1, similaridade.shape[1]):
             if similaridade[i, j] > lim_min_similaridade:
-                grafo.add_edge(dados.iloc[i]['show_id'], dados.iloc[j]['show_id'], weight=similaridade[i, j])
+                grafo.add_edge(aux.iloc[i]['show_id'], aux.iloc[j]['show_id'], weight=similaridade[i, j])
 
     return grafo
 
@@ -64,18 +62,19 @@ def recomenda_filmes(grafo, filme, filhos):
 def main():
     
     pesos = {
-        'type': 0.1,
-        'director': 0.1,
-        'cast': 0.2,
-        'country': 0.1,
-        'rating': 0.2,
-        'listed_in': 0.2,
-        'description': 0.3
+        'type': 0,
+        'director': 0,
+        'cast': 0,
+        'country': 0,
+        'rating': 0,
+        'listed_in': 0,
+        'description': 0
+        #teste
     }
     arquivo = 'C:/Users/issak/OneDrive/Área de Trabalho/Issaka/UFGD/Engenharia da Computação/Trabalhos/Teoria Dos Grafos/Trabalho 2/disney_plus_titles.csv'
     grafo = monta_grafo(arquivo, pesos)
 
-    filme_id = input("qual o id do filme base para recomendacao: ") 
+    filme_id = 's' + input("qual o id do filme base para recomendacao: ") 
     if filme_id not in grafo:
         print("valor invalido")
     else:
