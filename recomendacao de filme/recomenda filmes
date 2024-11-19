@@ -16,13 +16,14 @@ def prepara_arquivo(dados):
 def monta_grafo(arquivo, pesos):
     aux = pd.read_csv(arquivo)
     aux = prepara_arquivo(aux)
-    dados_filtrados = aux[['show_id', 'type', 'director', 'cast', 'country', 'rating', 'listed_in', 'description']]
+    dados_filtrados = aux[['show_id', 'title','type', 'director', 'cast', 'country', 'rating', 'listed_in', 'description']]
 
-    for coluna in ['show_id', 'type', 'director', 'cast', 'country', 'rating', 'listed_in', 'description']:
+    for coluna in ['show_id', 'title', 'type', 'director', 'cast', 'country', 'rating', 'listed_in', 'description']:
         dados_filtrados[coluna] = dados_filtrados[coluna].fillna('')
 
     dados_filtrados['features'] = (
         dados_filtrados['type'] + " " * int(pesos['type']) +
+        dados_filtrados['title'] + " " * int(pesos['title']) +
         dados_filtrados['director'] + " " * int(pesos['director']) +
         dados_filtrados['cast'] + " " * int(pesos['cast']) +
         dados_filtrados['country'] + " " * int(pesos['country']) +
@@ -62,14 +63,14 @@ def recomenda_filmes(grafo, filme, filhos):
 def main():
     
     pesos = {
-        'type': 0,
-        'director': 0,
-        'cast': 0,
-        'country': 0,
-        'rating': 0,
-        'listed_in': 0,
-        'description': 0
-        #teste
+        'type': 3,
+        'title': 3,
+        'director': 1,
+        'cast': 3,
+        'country': 0.5,
+        'rating': 2,
+        'listed_in': 5,
+        'description': 5
     }
     arquivo = 'C:/Users/issak/OneDrive/Área de Trabalho/Issaka/UFGD/Engenharia da Computação/Trabalhos/Teoria Dos Grafos/Trabalho 2/disney_plus_titles.csv'
     grafo = monta_grafo(arquivo, pesos)
