@@ -85,5 +85,5 @@ def main():
     print('Custo Total:', custo_total)
 
 # Executa a função principal se o script for executado diretamente.
-if __name__ == '_main_':
+if __name__ == '__main__':
         main()
